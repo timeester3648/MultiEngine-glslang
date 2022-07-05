@@ -22,3 +22,9 @@ tools/
 # Random OS stuff
 .DS_Store
 ._*
+
+# exclude project files
+**.sln
+**.vcxproj
+**.vcxproj.user
+**.vcxproj.filters
