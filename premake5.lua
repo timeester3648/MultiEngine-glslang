@@ -24,6 +24,10 @@ project "glslang"
 		"./OGLCompilersDLL/**.h",
 		"./OGLCompilersDLL/**.cpp",
 
+		"./SPIRV/**.h",
+		"./SPIRV/**.hpp",
+		"./SPIRV/**.cpp",
+
 		"./glslang/**.h",
 		"./glslang/**.cpp"
 	}
