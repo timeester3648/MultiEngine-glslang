@@ -33,7 +33,7 @@ project "glslang"
 	}
 
  	filter "system:windows"
-		disablewarnings { "4146" }
+		disablewarnings { "4146", "4267" }
 		defines { "GLSLANG_OSINCLUDE_WIN32" }
 		excludes { "./glslang/OSDependent/Windows/main.cpp",
 				   "./glslang/OSDependent/Unix/ossource.cpp",
