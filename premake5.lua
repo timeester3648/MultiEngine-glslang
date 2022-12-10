@@ -32,7 +32,7 @@ project "glslang"
 		"./glslang/**.cpp"
 	}
 
-	filter "action:vs*"
+	filter "toolset:msc"
 		disablewarnings { "4146", "4267" }
 
  	filter "system:windows"
