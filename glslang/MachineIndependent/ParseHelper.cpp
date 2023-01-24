@@ -80,10 +80,6 @@ TParseContext::TParseContext(TSymbolTable& symbolTable, TIntermediate& interm, b
     globalBufferDefaults.layoutMatrix = ElmColumnMajor;
     globalBufferDefaults.layoutPacking = spvVersion.spv != 0 ? ElpStd430 : ElpShared;
 
-    // use storage buffer on SPIR-V 1.3 and up
-    if (spvVersion.spv >= EShTargetSpv_1_3)
-        intermediate.setUseStorageBuffer();
-
     globalInputDefaults.clear();
     globalOutputDefaults.clear();
 
@@ -608,6 +604,15 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
 #ifndef GLSLANG_WEB
         if (base->getType().isUnsizedArray()) {
             base->getWritableType().updateImplicitArraySize(indexValue + 1);
+            base->getWritableType().setImplicitlySized(true);
+            if (base->getQualifier().builtIn == EbvClipDistance &&
+                indexValue >= resources.maxClipDistances) {
+                error(loc, "gl_ClipDistance", "[", "array index out of range '%d'", indexValue);
+            }
+            else if (base->getQualifier().builtIn == EbvCullDistance &&
+                indexValue >= resources.maxCullDistances) {
+                error(loc, "gl_CullDistance", "[", "array index out of range '%d'", indexValue);
+            }
             // For 2D per-view builtin arrays, update the inner dimension size in parent type
             if (base->getQualifier().isPerView() && base->getQualifier().builtIn != EbvNone) {
                 TIntermBinary* binaryNode = base->getAsBinaryNode();
@@ -1026,14 +1031,22 @@ TIntermTyped* TParseContext::handleDotDereference(const TSourceLoc& loc, TInterm
             inheritMemoryQualifiers(base->getQualifier(), result->getWritableType().getQualifier());
         } else {
             auto baseSymbol = base;
-            while (baseSymbol->getAsSymbolNode() == nullptr)
-                baseSymbol = baseSymbol->getAsBinaryNode()->getLeft();
-            TString structName;
-            structName.append("\'").append(baseSymbol->getAsSymbolNode()->getName().c_str()).append( "\'");
-            error(loc, "no such field in structure", field.c_str(), structName.c_str());
+            while (baseSymbol->getAsSymbolNode() == nullptr) {
+                auto binaryNode = baseSymbol->getAsBinaryNode();
+                if (binaryNode == nullptr) break;
+                baseSymbol = binaryNode->getLeft();
+            }
+            if (baseSymbol->getAsSymbolNode() != nullptr) {
+                TString structName;
+                structName.append("\'").append(baseSymbol->getAsSymbolNode()->getName().c_str()).append("\'");
+                error(loc, "no such field in structure", field.c_str(), structName.c_str());
+            } else {
+                error(loc, "no such field in structure", field.c_str(), "");
+            }
         }
     } else
-        error(loc, "does not apply to this type:", field.c_str(), base->getType().getCompleteString(intermediate.getEnhancedMsgs()).c_str());
+        error(loc, "does not apply to this type:", field.c_str(),
+          base->getType().getCompleteString(intermediate.getEnhancedMsgs()).c_str());
 
     // Propagate noContraction up the dereference chain
     if (base->getQualifier().isNoContraction())
@@ -2365,6 +2378,79 @@ void TParseContext::builtInOpCheck(const TSourceLoc& loc, const TFunction& fnCan
             unsigned int location = (*argp)[1]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
             if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(1, location) < 0)
                 error(loc, "with layout(location =", "no callableDataEXT/callableDataInEXT declared", "%d)", location);
+        }
+        break;
+
+    case EOpHitObjectTraceRayNV:
+        if (!(*argp)[11]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "payload number", "");
+        else {
+            unsigned int location = (*argp)[11]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
+                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectTraceRayMotionNV:
+        if (!(*argp)[12]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "payload number", "");
+        else {
+            unsigned int location = (*argp)[12]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
+                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectExecuteShaderNV:
+        if (!(*argp)[1]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "payload number", "");
+        else {
+            unsigned int location = (*argp)[1]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
+                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectRecordHitNV:
+        if (!(*argp)[12]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
+        else {
+            unsigned int location = (*argp)[12]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
+                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectRecordHitMotionNV:
+        if (!(*argp)[13]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
+        else {
+            unsigned int location = (*argp)[13]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
+                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectRecordHitWithIndexNV:
+        if (!(*argp)[11]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
+        else {
+            unsigned int location = (*argp)[11]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
+                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectRecordHitWithIndexMotionNV:
+        if (!(*argp)[12]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
+        else {
+            unsigned int location = (*argp)[12]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
+                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
+        }
+        break;
+    case EOpHitObjectGetAttributesNV:
+        if (!(*argp)[1]->getAsConstantUnion())
+            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
+        else {
+            unsigned int location = (*argp)[1]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
+                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
         }
         break;
 
@@ -3893,8 +3979,10 @@ void TParseContext::globalQualifierTypeCheck(const TSourceLoc& loc, const TQuali
         return;
     }
 
-    if (isTypeInt(publicType.basicType) || publicType.basicType == EbtDouble)
-        profileRequires(loc, EEsProfile, 300, nullptr, "shader input/output");
+    if (isTypeInt(publicType.basicType) || publicType.basicType == EbtDouble) {
+        profileRequires(loc, EEsProfile, 300, nullptr, "non-float shader input/output");
+        profileRequires(loc, ~EEsProfile, 130, nullptr, "non-float shader input/output");
+    }
 
     if (!qualifier.flat && !qualifier.isExplicitInterpolation() && !qualifier.isPervertexNV() && !qualifier.isPervertexEXT()) {
         if (isTypeInt(publicType.basicType) ||
@@ -4581,7 +4669,7 @@ void TParseContext::checkRuntimeSizable(const TSourceLoc& loc, const TIntermType
 
     // check for additional things allowed by GL_EXT_nonuniform_qualifier
     if (base.getBasicType() == EbtSampler || base.getBasicType() == EbtAccStruct || base.getBasicType() == EbtRayQuery ||
-        (base.getBasicType() == EbtBlock && base.getType().getQualifier().isUniformOrBuffer()))
+        base.getBasicType() == EbtHitObjectNV || (base.getBasicType() == EbtBlock && base.getType().getQualifier().isUniformOrBuffer()))
         requireExtensions(loc, 1, &E_GL_EXT_nonuniform_qualifier, "variable index");
     else
         error(loc, "", "[", "array must be redeclared with a size before being indexed with a variable");
@@ -5761,6 +5849,10 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
                 }
                 publicType.qualifier.layoutShaderRecord = true;
                 return;
+            } else if (id == "hitobjectshaderrecordnv") {
+                requireExtensions(loc, 1, &E_GL_NV_shader_invocation_reorder, "hitobject shader record NV");
+                publicType.qualifier.layoutHitObjectShaderRecordNV = true;
+                return;
             }
 
         }
@@ -6232,6 +6324,8 @@ void TParseContext::mergeObjectLayoutQualifiers(TQualifier& dst, const TQualifie
             dst.pervertexNV = true;
         if (src.pervertexEXT)
             dst.pervertexEXT = true;
+        if (src.layoutHitObjectShaderRecordNV)
+            dst.layoutHitObjectShaderRecordNV = true;
 #endif
     }
 }
@@ -6389,6 +6483,7 @@ void TParseContext::layoutTypeCheck(const TSourceLoc& loc, const TType& type)
         case EvqHitAttr:
         case EvqCallableData:
         case EvqCallableDataIn:
+        case EvqHitObjectAttrNV:
             break;
 #endif
         default:
@@ -7344,7 +7439,10 @@ TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& iden
     if (initializer) {
         if (type.getBasicType() == EbtRayQuery) {
             error(loc, "ray queries can only be initialized by using the rayQueryInitializeEXT intrinsic:", "=", identifier.c_str());
+        } else if (type.getBasicType() == EbtHitObjectNV) {
+            error(loc, "hit objects cannot be initialized using initializers", "=", identifier.c_str());
         }
+
     }
 
     if (type.isCoopMat()) {
@@ -8770,6 +8868,10 @@ void TParseContext::blockStageIoCheck(const TSourceLoc& loc, const TQualifier& q
     case EvqCallableDataIn:
         profileRequires(loc, ~EEsProfile, 460, 2, extsrt, "callableDataInNV block");
         requireStage(loc, (EShLanguageMask)(EShLangCallableMask), "callableDataInNV block");
+        break;
+    case EvqHitObjectAttrNV:
+        profileRequires(loc, ~EEsProfile, 460, E_GL_NV_shader_invocation_reorder, "hitObjectAttributeNV block");
+        requireStage(loc, (EShLanguageMask)(EShLangRayGenMask | EShLangClosestHitMask | EShLangMissMask), "hitObjectAttributeNV block");
         break;
 #endif
     default:

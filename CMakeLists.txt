@@ -41,7 +41,7 @@ if(POLICY CMP0054)
   cmake_policy(SET CMP0054 NEW)
 endif()
 
-project(glslang LANGUAGES CXX)
+project(glslang)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -192,10 +192,10 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND NOT MSVC)
         # Error if there's symbols that are not found at link time.
         # add_link_options() was added in CMake 3.13 - if using an earlier
         # version don't set this - it should be caught by presubmits anyway.
-        if (WIN32)
-            add_link_options("-Wl,--no-undefined")
-        else()
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
             add_link_options("-Wl,-undefined,error")
+        else()
+            add_link_options("-Wl,--no-undefined")
         endif()
     endif()
 elseif(MSVC)
@@ -355,9 +355,9 @@ if(ENABLE_CTEST AND BUILD_TESTING)
     endif()
 
     if (CMAKE_CONFIGURATION_TYPES)
-        set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>/localResults)
-        set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIGURATION>/glslangValidator)
-        set(REMAP_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIGURATION>/spirv-remap)
+        set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/localResults)
+        set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIG>/glslangValidator)
+        set(REMAP_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIG>/spirv-remap)
     else()
         set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/localResults)
         set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/glslangValidator)
