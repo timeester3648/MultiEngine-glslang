@@ -226,6 +226,7 @@ typedef struct glslang_spv_options_s {
     bool validate;
     bool emit_nonsemantic_shader_debug_info;
     bool emit_nonsemantic_shader_debug_source;
+    bool compile_only;
 } glslang_spv_options_t;
 
 #ifdef __cplusplus
@@ -248,8 +249,8 @@ extern "C" {
 #define GLSLANG_EXPORT
 #endif
 
-GLSLANG_EXPORT int glslang_initialize_process();
-GLSLANG_EXPORT void glslang_finalize_process();
+GLSLANG_EXPORT int glslang_initialize_process(void);
+GLSLANG_EXPORT void glslang_finalize_process(void);
 
 GLSLANG_EXPORT glslang_shader_t* glslang_shader_create(const glslang_input_t* input);
 GLSLANG_EXPORT void glslang_shader_delete(glslang_shader_t* shader);
@@ -264,7 +265,7 @@ GLSLANG_EXPORT const char* glslang_shader_get_preprocessed_code(glslang_shader_t
 GLSLANG_EXPORT const char* glslang_shader_get_info_log(glslang_shader_t* shader);
 GLSLANG_EXPORT const char* glslang_shader_get_info_debug_log(glslang_shader_t* shader);
 
-GLSLANG_EXPORT glslang_program_t* glslang_program_create();
+GLSLANG_EXPORT glslang_program_t* glslang_program_create(void);
 GLSLANG_EXPORT void glslang_program_delete(glslang_program_t* program);
 GLSLANG_EXPORT void glslang_program_add_shader(glslang_program_t* program, glslang_shader_t* shader);
 GLSLANG_EXPORT int glslang_program_link(glslang_program_t* program, int messages); // glslang_messages_t

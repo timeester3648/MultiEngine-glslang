@@ -281,6 +281,8 @@ INSTANTIATE_TEST_SUITE_P(
         "glsl.es320.subgroupShuffleRelative.comp",
         "glsl.es320.subgroupQuad.comp",
         "glsl.es320.subgroupVote.comp",
+        "glsl.es320.extTextureShadowLod.frag",
+        "glsl.ext.textureShadowLod.frag",
         "terminate.frag",
         "terminate.vert",
         "negativeWorkGroupSize.comp",
@@ -297,7 +299,9 @@ INSTANTIATE_TEST_SUITE_P(
         "EndStreamPrimitive.geom",
         "floatBitsToInt.vert",
         "coord_conventions.frag",
-        "gl_FragCoord.frag"
+        "gl_FragCoord.frag",
+        "glsl.interpOp.error.frag",
+        "overflow_underflow_toinf_0.frag",
     })),
     FileNameAsCustomTestSuffix
 );
