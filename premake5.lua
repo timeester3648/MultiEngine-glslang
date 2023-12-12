@@ -33,7 +33,7 @@ project "glslang"
 	}
 
 	filter "toolset:msc"
-		disablewarnings { "4146", "4267" }
+		disablewarnings { "4146", "4267", "4996" }
 
  	filter "system:windows"
 		defines { "GLSLANG_OSINCLUDE_WIN32" }
