@@ -1512,6 +1512,9 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
     if (getSubgroupUniformControlFlow())
         infoSink.debug << "subgroup_uniform_control_flow\n";
 
+    if (getMaximallyReconverges())
+        infoSink.debug << "maximally_reconverges\n";
+
     switch (language) {
     case EShLangVertex:
         break;

@@ -258,6 +258,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_EXT_shader_16bit_storage]                    = EBhDisable;
     extensionBehavior[E_GL_EXT_shader_8bit_storage]                     = EBhDisable;
     extensionBehavior[E_GL_EXT_subgroup_uniform_control_flow]           = EBhDisable;
+    extensionBehavior[E_GL_EXT_maximal_reconvergence]                   = EBhDisable;
 
     extensionBehavior[E_GL_EXT_fragment_shader_barycentric]             = EBhDisable;
 
@@ -359,6 +360,8 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_EXT_ray_tracing_position_fetch]  = EBhDisable;
     extensionBehavior[E_GL_EXT_shader_tile_image]           = EBhDisable;
     extensionBehavior[E_GL_EXT_texture_shadow_lod]          = EBhDisable;
+    extensionBehavior[E_GL_EXT_draw_instanced]              = EBhDisable;
+    extensionBehavior[E_GL_EXT_texture_array]               = EBhDisable;
 
     // OVR extensions
     extensionBehavior[E_GL_OVR_multiview]                = EBhDisable;
@@ -444,6 +447,7 @@ void TParseVersions::getPreamble(std::string& preamble)
             if (version >= 310) {
                 preamble += "#define GL_EXT_null_initializer 1\n";
                 preamble += "#define GL_EXT_subgroup_uniform_control_flow 1\n";
+                preamble += "#define GL_EXT_maximal_reconvergence 1\n";
             }
 
     } else { // !isEsProfile()
@@ -487,7 +491,7 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_ARB_vertex_attrib_64bit 1\n"
             "#define GL_ARB_draw_instanced 1\n"
             "#define GL_ARB_fragment_coord_conventions 1\n"
-            "#define GL_ARB_bindless_texture 1\n"
+
             "#define GL_EXT_shader_non_constant_global_initializers 1\n"
             "#define GL_EXT_shader_image_load_formatted 1\n"
             "#define GL_EXT_post_depth_coverage 1\n"
@@ -580,7 +584,12 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_EXT_shader_atomic_float2 1\n"
 
             "#define GL_EXT_fragment_shader_barycentric 1\n"
+            "#define GL_EXT_texture_array 1\n"
             ;
+
+        if (spvVersion.spv == 0) {
+            preamble += "#define GL_ARB_bindless_texture 1\n";
+        }
 
         if (version >= 150) {
             // define GL_core_profile and GL_compatibility_profile
@@ -592,6 +601,7 @@ void TParseVersions::getPreamble(std::string& preamble)
         if (version >= 140) {
             preamble += "#define GL_EXT_null_initializer 1\n";
             preamble += "#define GL_EXT_subgroup_uniform_control_flow 1\n";
+            preamble += "#define GL_EXT_maximal_reconvergence 1\n";
         }
         if (version >= 130) {
             preamble +="#define GL_FRAGMENT_PRECISION_HIGH 1\n";
