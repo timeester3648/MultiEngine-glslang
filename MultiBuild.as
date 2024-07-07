@@ -2,9 +2,9 @@ void main(MultiBuild::Workspace& workspace) {
 	auto project = workspace.create_project(".");
 	auto properties = project.properties();
 
-	properties.name("glslang");
+	project.name("glslang");
 	properties.binary_object_kind(MultiBuild::BinaryObjectKind::eStaticLib);
-	properties.license("./LICENSE.txt");
+	project.license("./LICENSE.txt");
 
 	properties.include_directories({
 		"spirv_tools",
