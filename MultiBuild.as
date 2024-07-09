@@ -6,9 +6,7 @@ void main(MultiBuild::Workspace& workspace) {
 	properties.binary_object_kind(MultiBuild::BinaryObjectKind::eStaticLib);
 	project.license("./LICENSE.txt");
 
-	properties.include_directories({
-		"spirv_tools",
-	});
+	properties.project_includes("spirv_tools");
 
 	project.include_own_required_includes(true);
 	project.add_required_project_include({
