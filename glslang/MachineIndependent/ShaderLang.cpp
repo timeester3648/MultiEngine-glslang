@@ -82,7 +82,10 @@ namespace { // anonymous namespace for file-local functions and symbols
 int NumberOfClients = 0;
 
 // global initialization lock
+#ifndef DISABLE_THREAD_SUPPORT
 std::mutex init_lock;
+#endif
+
 
 using namespace glslang;
 
@@ -420,7 +423,9 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
     TInfoSink infoSink;
 
     // Make sure only one thread tries to do this at a time
+#ifndef DISABLE_THREAD_SUPPORT
     const std::lock_guard<std::mutex> lock(init_lock);
+#endif
 
     // See if it's already been done for this version/profile combination
     int versionIndex = MapVersionToIndex(version);
@@ -633,6 +638,7 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
             infoSink.info.message(EPrefixError, "#version: mesh/task shaders require es profile with version 320 or above, or non-es profile with version 450 or above");
             version = profile == EEsProfile ? 320 : 450;
         }
+        break;
     default:
         break;
     }
@@ -787,7 +793,7 @@ bool ProcessDeferred(
     // set version/profile to defaultVersion/defaultProfile regardless of the #version
     // directive in the source code
     bool forceDefaultVersionAndProfile,
-    int overrideVersion, // overrides version specified by #verison or default version
+    int overrideVersion, // overrides version specified by #version or default version
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
     TIntermediate& intermediate, // returned tree, etc.
@@ -1310,7 +1316,9 @@ bool CompileDeferred(
 //
 int ShInitialize()
 {
+#ifndef DISABLE_THREAD_SUPPORT
     const std::lock_guard<std::mutex> lock(init_lock);
+#endif
     ++NumberOfClients;
 
     if (PerProcessGPA == nullptr)
@@ -1370,7 +1378,9 @@ void ShDestruct(ShHandle handle)
 //
 int ShFinalize()
 {
+#ifndef DISABLE_THREAD_SUPPORT
     const std::lock_guard<std::mutex> lock(init_lock);
+#endif
     --NumberOfClients;
     assert(NumberOfClients >= 0);
     if (NumberOfClients > 0)
@@ -1433,7 +1443,8 @@ int ShCompile(
     int /*debugOptions*/,
     int defaultVersion,        // use 100 for ES environment, 110 for desktop
     bool forwardCompatible,    // give errors for use of deprecated features
-    EShMessages messages       // warnings/errors/AST; things to print out
+    EShMessages messages,       // warnings/errors/AST; things to print out,
+    const char *shaderFileName // the filename
     )
 {
     // Map the generic handle to the C++ object
@@ -1449,6 +1460,9 @@ int ShCompile(
 
     compiler->infoSink.info.erase();
     compiler->infoSink.debug.erase();
+    compiler->infoSink.info.setShaderFileName(shaderFileName);
+    compiler->infoSink.debug.setShaderFileName(shaderFileName);
+
 
     TIntermediate intermediate(compiler->getLanguage());
     TShader::ForbidIncluder includer;
@@ -2100,10 +2114,14 @@ const char* TProgram::getInfoDebugLog()
 // Reflection implementation.
 //
 
+unsigned int TObjectReflection::layoutLocation() const { return type->getQualifier().layoutLocation; }
+
 bool TProgram::buildReflection(int opts)
 {
     if (! linked || reflection != nullptr)
         return false;
+
+    SetThreadPoolAllocator(pool);
 
     int firstStage = EShLangVertex, lastStage = EShLangFragment;
 
@@ -2160,6 +2178,9 @@ bool TProgram::mapIO(TIoMapResolver* pResolver, TIoMapper* pIoMapper)
 {
     if (! linked)
         return false;
+
+    SetThreadPoolAllocator(pool);
+
     TIoMapper* ioMapper = nullptr;
     TIoMapper defaultIOMapper;
     if (pIoMapper == nullptr)
